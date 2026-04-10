@@ -11,6 +11,7 @@ export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isLogin, setIsLogin] = useState(true);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -27,14 +28,18 @@ export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
         if (error) throw error;
         onAuthSuccess();
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
-        // Supabase might require email confirmation, but for now we consider it success
-        // or wait for the session. In local dev without SMTP it often auto-confirms or needs config.
-        onAuthSuccess();
+        
+        if (data.session) {
+          onAuthSuccess();
+        } else {
+          setSuccessMsg("Аккаунт создан! В целях безопасности Supabase требует подтвердить почту — зайдите на свою почту и перейдите по ссылке (проверьте папку Спам). Если вы отключили 'Confirm email' в настройках Supabase, можете просто войти в систему прямо сейчас.");
+          setIsLogin(true);
+        }
       }
     } catch (err: any) {
       setError(err.message || "Произошла ошибка при аутентификации.");
@@ -72,6 +77,12 @@ export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                   <span>{error}</span>
                 </div>
               )}
+              {successMsg && (
+                <div className="p-3 bg-green-50 border border-green-100 rounded-lg flex items-start gap-2 text-green-700 text-sm">
+                  <TrendingUp size={16} className="mt-0.5" />
+                  <span>{successMsg}</span>
+                </div>
+              )}
               
               <div className="space-y-2">
                 <Input
@@ -106,7 +117,12 @@ export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
             <div className="mt-6 text-center text-sm text-muted-foreground">
               {isLogin ? "Нет аккаунта?" : "Уже есть аккаунт?"}{" "}
               <button 
-                onClick={() => setIsLogin(!isLogin)} 
+                type="button"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setSuccessMsg(null);
+                  setError(null);
+                }} 
                 className="text-[#7C3AED] font-semibold hover:underline"
               >
                 {isLogin ? "Зарегистрироваться" : "Войти"}
