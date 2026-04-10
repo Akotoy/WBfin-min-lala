@@ -39,3 +39,17 @@
 ### TODO-003: Нет обработки ошибок при сохранении в Supabase
 - `handleSaveSettings` и `handleUpdateCogs` делают `await supabase.from(...).upsert(...)`, но не проверяют `error`.
 - Нужно: toast-уведомление при ошибке.
+
+---
+
+## 🔴 Критические (решённые — Сессия 2)
+
+### BUG-004: 401 Unauthorized на content-api.wildberries.ru
+- **Симптом:** Логи Vercel показывают `401 "unauthorized"` при загрузке дашборда
+- **Причина:** Токен пользователя (тип «Базовый») имеет права Статистика/Финансы, но НЕ имеет прав на «Контент». Функция `getProducts()` вызывала Content API.
+- **Фикс:** Удалена зависимость от Content API. Товары теперь собираются из данных статистики (`buildProductsFromData()`) → [ADR-006](decisions.md#adr-006)
+
+### BUG-005: 500 TypeError: fetch failed на wb-proxy
+- **Симптом:** Лог `[ual6qo] Stack: TypeError: fetch failed at node:internal/deps...`
+- **Причина:** Таймаут или сетевая ошибка при запросе к WB API из Vercel Serverless Function
+- **Фикс:** Добавлена retry-логика с exponential backoff в `wbService.ts`. Прокси теперь корректно логирует ошибки с requestId.
