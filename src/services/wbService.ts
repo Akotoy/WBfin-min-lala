@@ -77,52 +77,65 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ─── Карточки товаров (Content API) ────────────────────────────
-export async function getProducts(token: string): Promise<WBProduct[]> {
-  const allCards: WBProduct[] = [];
-  let cursor = { limit: 100, updatedAt: "", nmID: 0 };
-  let hasMore = true;
+// ─── Сборка списка товаров из данных статистики ────────────────
+// Не требует Content-токена. Собираем уникальные товары из продаж,
+// финотчётов и остатков.
+export function buildProductsFromData(
+  sales: WBSale[],
+  reports: WBReportDetail[],
+  stocks: any[]
+): WBProduct[] {
+  const productMap = new Map<number, WBProduct>();
 
-  while (hasMore) {
-    const data = await fetchFromWB(
-      `${WB.content}/content/v2/get/cards/list`,
-      token,
-      "POST",
-      {
-        settings: {
-          cursor,
-          filter: { withPhoto: -1 },
-        },
-      }
-    );
+  // Из продаж
+  for (const s of sales) {
+    if (!s.nmId || productMap.has(s.nmId)) continue;
+    productMap.set(s.nmId, {
+      nmId: s.nmId,
+      vendorCode: s.supplierArticle || "",
+      title: [s.brand, s.subject, s.supplierArticle].filter(Boolean).join(" / ") || "Без названия",
+      price: s.totalPrice || s.finishedPrice || 0,
+      discount: s.discountPercent || 0,
+      stock: 0,
+      category: s.category || s.subject || "",
+    });
+  }
 
-    const cards = data?.cards || [];
-    for (const card of cards) {
-      allCards.push({
-        nmId: card.nmID,
-        vendorCode: card.vendorCode || "",
-        title: card.title || card.subjectName || "Без названия",
-        price: card.sizes?.[0]?.price || 0,
-        discount: card.sizes?.[0]?.discountedPrice || card.sizes?.[0]?.discount || 0,
-        stock: 0, // Остатки приходят из отдельного API — мержим в App.tsx
-        category: card.subjectName || "",
-      });
-    }
+  // Из финотчётов (может содержать товары которые не было в продажах за 30 дней)
+  for (const r of reports) {
+    if (!r.nm_id || productMap.has(r.nm_id)) continue;
+    productMap.set(r.nm_id, {
+      nmId: r.nm_id,
+      vendorCode: r.sa_name || "",
+      title: [r.brand_name, r.subject_name, r.sa_name].filter(Boolean).join(" / ") || "Без названия",
+      price: r.retail_price || 0,
+      discount: r.sale_percent || 0,
+      stock: 0,
+      category: r.subject_name || "",
+    });
+  }
 
-    // Пагинация: если вернулось меньше лимита — это последняя страница
-    if (cards.length < cursor.limit) {
-      hasMore = false;
+  // Мержим остатки
+  for (const st of stocks) {
+    const nmId = st.nmId;
+    if (!nmId) continue;
+    const existing = productMap.get(nmId);
+    if (existing) {
+      existing.stock += (st.quantity || 0);
     } else {
-      const lastCard = cards[cards.length - 1];
-      cursor = {
-        limit: 100,
-        updatedAt: lastCard.updatedAt || "",
-        nmID: lastCard.nmID || 0,
-      };
+      productMap.set(nmId, {
+        nmId,
+        vendorCode: st.supplierArticle || "",
+        title: [st.brand, st.subject, st.supplierArticle].filter(Boolean).join(" / ") || "Без названия",
+        price: st.Price || 0,
+        discount: st.Discount || 0,
+        stock: st.quantity || 0,
+        category: st.category || st.subject || "",
+      });
     }
   }
 
-  return allCards;
+  return Array.from(productMap.values());
 }
 
 // ─── Продажи (Statistics API) ──────────────────────────────────

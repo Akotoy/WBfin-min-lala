@@ -55,7 +55,7 @@ import {
   Cell
 } from "recharts";
 import { format, subDays, startOfDay } from "date-fns";
-import { getProducts, getSales, getOrders, getStocks, getReportDetailByPeriod } from "./services/wbService";
+import { buildProductsFromData, getSales, getOrders, getStocks, getReportDetailByPeriod } from "./services/wbService";
 import { WBProduct, WBSale, WBOrder, FinancialStats, WBSettings, WBReportDetail, FinancialReportRow } from "./types";
 import { calculateFinancialReport } from "./lib/financeEngine";
 import { supabase } from "@/lib/supabase";
@@ -88,18 +88,18 @@ export default function App() {
     try {
       const dateFrom = format(subDays(new Date(), 30), "yyyy-MM-dd");
       const dateTo = format(new Date(), "yyyy-MM-dd");
-      const [p, s, o, st, r] = await Promise.all([
-        getProducts(settings.tokens.standard || settings.tokens.statistics),
+      const [s, o, st, r] = await Promise.all([
         getSales(settings.tokens.statistics, dateFrom),
         getOrders(settings.tokens.statistics, dateFrom),
-        getStocks(settings.tokens.statistics),
-        getReportDetailByPeriod(settings.tokens.statistics, dateFrom, dateTo).catch(() => []) // Catch error if report fails
+        getStocks(settings.tokens.statistics).catch(() => []),
+        getReportDetailByPeriod(settings.tokens.statistics, dateFrom, dateTo).catch(() => [])
       ]);
-      setProducts(p);
       setSales(s);
       setOrders(o);
       setStocks(st);
       setReports(r);
+      // Собираем список товаров из данных статистики (без Content API)
+      setProducts(buildProductsFromData(s, r, st));
     } catch (err: any) {
       setError(err.message);
     } finally {
