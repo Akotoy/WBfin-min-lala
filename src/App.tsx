@@ -16,7 +16,8 @@ import {
   TrendingDown,
   Truck,
   AlertTriangle,
-  Calculator
+  Calculator,
+  LogOut
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -57,33 +58,21 @@ import { format, subDays, startOfDay } from "date-fns";
 import { getProducts, getSales, getOrders, getStocks, getReportDetailByPeriod } from "./services/wbService";
 import { WBProduct, WBSale, WBOrder, FinancialStats, WBSettings, WBReportDetail, FinancialReportRow } from "./types";
 import { calculateFinancialReport } from "./lib/financeEngine";
+import { supabase } from "@/lib/supabase";
+import { Auth } from "@/components/Auth";
+import { Session } from "@supabase/supabase-js";
 
-// Mock data for demo mode
-const MOCK_SALES: WBSale[] = Array.from({ length: 30 }).map((_, i) => ({
-  date: subDays(new Date(), i).toISOString(),
-  finishedPrice: Math.floor(Math.random() * 5000) + 1000,
-  forPay: Math.floor(Math.random() * 3000) + 500,
-  nmId: 123456,
-  supplierArticle: "ART-" + i,
-} as any));
-
-const MOCK_ORDERS: WBOrder[] = Array.from({ length: 50 }).map((_, i) => ({
-  date: subDays(new Date(), Math.floor(i/2)).toISOString(),
-  priceWithDisc: Math.floor(Math.random() * 5000) + 1000,
-} as any));
 
 export default function App() {
-  const [settings, setSettings] = useState<WBSettings>(() => {
-    const saved = localStorage.getItem("wb_settings");
-    if (saved) return JSON.parse(saved);
-    const oldToken = localStorage.getItem("wb_token") || "";
-    return { tokens: { standard: oldToken, statistics: oldToken, ads: "" }, taxRate: 6 };
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  const [settings, setSettings] = useState<WBSettings>({
+    tokens: { standard: "", statistics: "", ads: "" },
+    taxRate: 6
   });
-  const [cogs, setCogs] = useState<Record<number, number>>(() => {
-    const saved = localStorage.getItem("wb_cogs");
-    return saved ? JSON.parse(saved) : {};
-  });
-  const [isDemo, setIsDemo] = useState(!settings.tokens.statistics);
+  const [cogs, setCogs] = useState<Record<number, number>>({});
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<WBProduct[]>([]);
@@ -93,34 +82,24 @@ export default function App() {
   const [reports, setReports] = useState<WBReportDetail[]>([]);
 
   const fetchData = async () => {
-    if (!settings.tokens.statistics && !isDemo) return;
+    if (!settings.tokens.statistics) return;
     setLoading(true);
     setError(null);
     try {
-      if (isDemo) {
-        setSales(MOCK_SALES);
-        setOrders(MOCK_ORDERS);
-        setProducts([
-          { nmId: 1, vendorCode: "VC1", title: "Товар 1", price: 2500, discount: 20, stock: 45, category: "Одежда" },
-          { nmId: 2, vendorCode: "VC2", title: "Товар 2", price: 1200, discount: 10, stock: 12, category: "Обувь" },
-        ]);
-        setReports([]);
-      } else {
-        const dateFrom = format(subDays(new Date(), 30), "yyyy-MM-dd");
-        const dateTo = format(new Date(), "yyyy-MM-dd");
-        const [p, s, o, st, r] = await Promise.all([
-          getProducts(settings.tokens.standard || settings.tokens.statistics),
-          getSales(settings.tokens.statistics, dateFrom),
-          getOrders(settings.tokens.statistics, dateFrom),
-          getStocks(settings.tokens.statistics),
-          getReportDetailByPeriod(settings.tokens.statistics, dateFrom, dateTo).catch(() => []) // Catch error if report fails
-        ]);
-        setProducts(p);
-        setSales(s);
-        setOrders(o);
-        setStocks(st);
-        setReports(r);
-      }
+      const dateFrom = format(subDays(new Date(), 30), "yyyy-MM-dd");
+      const dateTo = format(new Date(), "yyyy-MM-dd");
+      const [p, s, o, st, r] = await Promise.all([
+        getProducts(settings.tokens.standard || settings.tokens.statistics),
+        getSales(settings.tokens.statistics, dateFrom),
+        getOrders(settings.tokens.statistics, dateFrom),
+        getStocks(settings.tokens.statistics),
+        getReportDetailByPeriod(settings.tokens.statistics, dateFrom, dateTo).catch(() => []) // Catch error if report fails
+      ]);
+      setProducts(p);
+      setSales(s);
+      setOrders(o);
+      setStocks(st);
+      setReports(r);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -129,8 +108,52 @@ export default function App() {
   };
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    
+    const loadUserData = async () => {
+      const { data: settingsData } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+      
+      if (settingsData && settingsData.settings) {
+        setSettings(settingsData.settings);
+      }
+
+      const { data: cogsData } = await supabase
+        .from('product_cogs')
+        .select('nm_id, cost')
+        .eq('user_id', session.user.id);
+        
+      if (cogsData) {
+        const cogsMap: Record<number, number> = {};
+        cogsData.forEach(row => cogsMap[row.nm_id] = row.cost);
+        setCogs(cogsMap);
+      }
+    };
+    
+    loadUserData();
+  }, [session]);
+
+  useEffect(() => {
     fetchData();
-  }, [settings.tokens.statistics, isDemo]);
+  }, [settings.tokens.statistics]);
 
   const stats = useMemo(() => {
     const revenue = sales.reduce((acc, s) => acc + s.finishedPrice, 0);
@@ -161,8 +184,10 @@ export default function App() {
     return calculateFinancialReport(reports, products, cogs, settings.taxRate);
   }, [reports, products, cogs, settings.taxRate]);
 
-  const handleSaveSettings = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveSettings = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!session?.user) return;
+
     const formData = new FormData(e.currentTarget);
     const newSettings: WBSettings = {
       tokens: {
@@ -173,14 +198,26 @@ export default function App() {
       taxRate: Number(formData.get("taxRate")) || 6,
     };
     setSettings(newSettings);
-    localStorage.setItem("wb_settings", JSON.stringify(newSettings));
-    setIsDemo(false);
+
+    await supabase.from('user_settings').upsert({
+      user_id: session.user.id,
+      settings: newSettings,
+      updated_at: new Date().toISOString()
+    });
   };
 
-  const handleUpdateCogs = (nmId: number, cost: number) => {
+  const handleUpdateCogs = async (nmId: number, cost: number) => {
+    if (!session?.user) return;
+
     const newCogs = { ...cogs, [nmId]: cost };
     setCogs(newCogs);
-    localStorage.setItem("wb_cogs", JSON.stringify(newCogs));
+    
+    await supabase.from('product_cogs').upsert({
+      user_id: session.user.id,
+      nm_id: nmId,
+      cost: cost,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id, nm_id' });
   };
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -217,10 +254,6 @@ export default function App() {
   }, [financeRows]);
 
   const handleUpdatePrice = async (nmId: number, newPrice: number) => {
-    if (isDemo) {
-      setProducts(prev => prev.map(p => p.nmId === nmId ? { ...p, price: newPrice } : p));
-      return;
-    }
     setLoading(true);
     try {
       // In a real app, we'd call the service
@@ -232,6 +265,14 @@ export default function App() {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">Загрузка...</div>;
+  }
+
+  if (!session) {
+    return <Auth onAuthSuccess={() => {}} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans">
@@ -278,13 +319,21 @@ export default function App() {
         </nav>
 
         <div className="absolute bottom-6 left-6 right-6">
-          <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
+          <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 mb-2">
             <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-1">Статус API</p>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isDemo ? 'bg-yellow-400' : 'bg-green-500'}`} />
-              <span className="text-sm font-medium">{isDemo ? 'Демо режим' : 'Подключено'}</span>
+              <div className={`w-2 h-2 rounded-full ${settings.tokens.statistics ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="text-sm font-medium">{settings.tokens.statistics ? 'Подключено' : 'Ожидает токен'}</span>
             </div>
           </div>
+          <Button 
+            variant="ghost" 
+            className="w-full text-left justify-start text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
+            onClick={() => supabase.auth.signOut()}
+          >
+            <LogOut size={20} className="mr-3" />
+            Выйти
+          </Button>
         </div>
       </aside>
 
@@ -446,14 +495,6 @@ export default function App() {
                       </div>
                       <Button type="submit" className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] rounded-xl">
                         Сохранить токен
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        className="w-full text-xs"
-                        onClick={() => setIsDemo(true)}
-                      >
-                        Использовать демо-данные
                       </Button>
                     </form>
                   </CardContent>

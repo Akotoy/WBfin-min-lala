@@ -27,7 +27,7 @@ export async function getProducts(token: string): Promise<WBProduct[]> {
       filter: { withPhoto: -1 }
     }
   });
-  
+
   // This is a simplified mapping, real API returns more complex structure
   return data.cards?.map((card: any) => ({
     nmId: card.nmID,
