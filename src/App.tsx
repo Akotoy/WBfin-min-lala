@@ -54,7 +54,7 @@ import {
   Bar,
   Cell
 } from "recharts";
-import { format, subDays, startOfDay } from "date-fns";
+import { format, subDays, startOfDay, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { buildProductsFromData, getSales, getOrders, getStocks, getReportDetailByPeriod } from "./services/wbService";
 import { WBProduct, WBSale, WBOrder, FinancialStats, WBSettings, WBReportDetail, FinancialReportRow } from "./types";
 import { calculateFinancialReport } from "./lib/financeEngine";
@@ -86,13 +86,20 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
+      // Общие данные (продажи, заказы на дашборд) за 30 дней
       const dateFrom = format(subDays(new Date(), 30), "yyyy-MM-dd");
+      // Финансовый отчет строго за прошлую неделю (Пн-Вс)
+      const prevWeekStart = startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
+      const prevWeekEnd = endOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
+      const financeDateFrom = format(prevWeekStart, "yyyy-MM-dd");
+      const financeDateTo = format(prevWeekEnd, "yyyy-MM-dd");
       const dateTo = format(new Date(), "yyyy-MM-dd");
+      
       const [s, o, st, r] = await Promise.all([
         getSales(settings.tokens.statistics, dateFrom),
         getOrders(settings.tokens.statistics, dateFrom),
         getStocks(settings.tokens.statistics).catch(() => []),
-        getReportDetailByPeriod(settings.tokens.statistics, dateFrom, dateTo).catch(() => [])
+        getReportDetailByPeriod(settings.tokens.statistics, financeDateFrom, financeDateTo).catch(() => [])
       ]);
       setSales(s);
       setOrders(o);
