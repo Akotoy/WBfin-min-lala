@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
   LayoutDashboard, 
   Package, 
@@ -17,7 +17,12 @@ import {
   Truck,
   AlertTriangle,
   Calculator,
-  LogOut
+  LogOut,
+  Save,
+  X,
+  Download,
+  CheckCircle2,
+  Key
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -40,6 +45,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { 
   LineChart, 
   Line, 
@@ -82,6 +97,12 @@ export default function App() {
   const [orders, setOrders] = useState<WBOrder[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
   const [reports, setReports] = useState<WBReportDetail[]>([]);
+
+  // --- Состояние для диалога подтверждения несохранённых изменений ---
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+  const settingsFormRef = useRef<HTMLFormElement>(null);
 
   const fetchData = async () => {
     if (!settings.tokens.statistics) return;
@@ -212,11 +233,22 @@ export default function App() {
     };
     setSettings(newSettings);
 
-    await supabase.from('user_settings').upsert({
+    const { error: saveError } = await supabase.from('user_settings').upsert({
       user_id: session.user.id,
       settings: newSettings,
       updated_at: new Date().toISOString()
     });
+
+    if (saveError) {
+      toast.error("Ошибка сохранения", {
+        description: saveError.message || "Не удалось сохранить настройки в базу данных",
+      });
+    } else {
+      toast.success("Сохранено", {
+        description: "Настройки успешно обновлены",
+      });
+      setHasUnsavedChanges(false);
+    }
   };
 
   const handleUpdateCogs = async (nmId: number, cost: number) => {
@@ -225,16 +257,97 @@ export default function App() {
     const newCogs = { ...cogs, [nmId]: cost };
     setCogs(newCogs);
     
-    await supabase.from('product_cogs').upsert({
+    const { error: cogsError } = await supabase.from('product_cogs').upsert({
       user_id: session.user.id,
       nm_id: nmId,
       cost: cost,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id, nm_id' });
+
+    if (cogsError) {
+      toast.error("Ошибка сохранения себестоимости", {
+        description: cogsError.message,
+      });
+    } else {
+      toast.success("Сохранено", {
+        description: `Себестоимость обновлена: ${cost} ₽`,
+      });
+    }
   };
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [expandedFinanceRow, setExpandedFinanceRow] = useState<number | null>(null);
+
+  // --- Переключение вкладок с проверкой несохранённых изменений ---
+  const handleTabChange = (tab: string) => {
+    if (activeTab === "settings" && hasUnsavedChanges && tab !== "settings") {
+      setPendingTab(tab);
+      setShowUnsavedDialog(true);
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setHasUnsavedChanges(false);
+    setShowUnsavedDialog(false);
+    if (pendingTab) {
+      setActiveTab(pendingTab);
+      setPendingTab(null);
+    }
+  };
+
+  const handleSaveAndSwitch = async () => {
+    if (settingsFormRef.current) {
+      // Программно сабмитим форму настроек
+      settingsFormRef.current.requestSubmit();
+    }
+    setShowUnsavedDialog(false);
+    if (pendingTab) {
+      // Небольшая задержка чтобы сохранение обработалось
+      setTimeout(() => {
+        setActiveTab(pendingTab!);
+        setPendingTab(null);
+      }, 300);
+    }
+  };
+
+  // --- Экспорт отчета ---
+  const handleExportReport = () => {
+    if (financeRows.length === 0) {
+      toast.error("Нет данных для экспорта", {
+        description: "Загрузите данные перед экспортом отчета",
+      });
+      return;
+    }
+
+    // Формируем CSV
+    const headers = ["Товар", "Артикул", "Продажи шт", "Выручка", "Комиссия", "Логистика", "Штрафы", "Чистая прибыль", "Рентабельность"];
+    const rows = financeRows.map(r => [
+      r.title,
+      r.vendorCode,
+      r.salesCount,
+      r.revenue,
+      r.commissionRub,
+      r.logisticsRub,
+      r.penalties,
+      r.netProfit,
+      `${r.roi.toFixed(1)}%`
+    ]);
+
+    const csvContent = "\uFEFF" + [headers, ...rows].map(row => row.join(";")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `wb-finance-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast.success("Отчёт экспортирован", {
+      description: "CSV-файл скачан",
+    });
+  };
 
   const financeSummary = useMemo(() => {
     let revenue = 0;
@@ -303,31 +416,31 @@ export default function App() {
             icon={<LayoutDashboard size={20} />} 
             label="Дашборд" 
             active={activeTab === "dashboard"} 
-            onClick={() => setActiveTab("dashboard")}
+            onClick={() => handleTabChange("dashboard")}
           />
           <NavItem 
             icon={<Package size={20} />} 
             label="Товары" 
             active={activeTab === "products"} 
-            onClick={() => setActiveTab("products")}
+            onClick={() => handleTabChange("products")}
           />
           <NavItem 
             icon={<ShoppingCart size={20} />} 
             label="Заказы" 
             active={activeTab === "orders"} 
-            onClick={() => setActiveTab("orders")}
+            onClick={() => handleTabChange("orders")}
           />
           <NavItem 
             icon={<Wallet size={20} />} 
             label="Финансы" 
             active={activeTab === "finance"} 
-            onClick={() => setActiveTab("finance")}
+            onClick={() => handleTabChange("finance")}
           />
           <NavItem 
             icon={<Settings size={20} />} 
             label="Настройки" 
             active={activeTab === "settings"} 
-            onClick={() => setActiveTab("settings")}
+            onClick={() => handleTabChange("settings")}
           />
         </nav>
 
@@ -362,7 +475,8 @@ export default function App() {
               <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
               Обновить
             </Button>
-            <Button size="sm" className="bg-[#7C3AED] hover:bg-[#6D28D9]">
+            <Button size="sm" className="bg-[#7C3AED] hover:bg-[#6D28D9]" onClick={handleExportReport}>
+              <Download size={16} className="mr-2" />
               Экспорт отчета
             </Button>
           </div>
@@ -485,31 +599,56 @@ export default function App() {
                   </CardContent>
                 </Card>
 
-                {/* Token Settings */}
+                {/* Quick Info Widget */}
                 <Card className="border-none shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-lg font-semibold">Быстрые настройки API</CardTitle>
-                    <CardDescription>Перейдите в Настройки для полного управления</CardDescription>
+                    <CardTitle className="text-lg font-semibold">Быстрая информация</CardTitle>
+                    <CardDescription>Сводка по ключевым метрикам</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleSaveSettings} className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-muted-foreground uppercase">Токен (Статистика)</label>
-                        <Input 
-                          name="statisticsToken" 
-                          type="password" 
-                          placeholder="Введите токен статистики..." 
-                          defaultValue={settings.tokens.statistics}
-                          className="rounded-xl border-[#E5E7EB]"
-                        />
-                        <input type="hidden" name="standardToken" value={settings.tokens.standard} />
-                        <input type="hidden" name="adsToken" value={settings.tokens.ads} />
-                        <input type="hidden" name="taxRate" value={settings.taxRate} />
+                  <CardContent className="space-y-4">
+                    {/* Статус подключения API */}
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                      <div className={`p-2 rounded-lg ${settings.tokens.statistics ? 'bg-green-100' : 'bg-red-100'}`}>
+                        <Key size={18} className={settings.tokens.statistics ? 'text-green-600' : 'text-red-600'} />
                       </div>
-                      <Button type="submit" className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] rounded-xl">
-                        Сохранить токен
-                      </Button>
-                    </form>
+                      <div>
+                        <p className="text-sm font-medium">API Wildberries</p>
+                        <p className={`text-xs ${settings.tokens.statistics ? 'text-green-600' : 'text-red-500'}`}>
+                          {settings.tokens.statistics ? 'Подключено' : 'Токен не настроен'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Количество товаров */}
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                      <div className="p-2 rounded-lg bg-purple-100">
+                        <Package size={18} className="text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Товаров</p>
+                        <p className="text-xs text-muted-foreground">{products.length} шт</p>
+                      </div>
+                    </div>
+
+                    {/* Налоговая ставка */}
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                      <div className="p-2 rounded-lg bg-orange-100">
+                        <Calculator size={18} className="text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Налоговая ставка</p>
+                        <p className="text-xs text-muted-foreground">УСН {settings.taxRate}%</p>
+                      </div>
+                    </div>
+
+                    <Button 
+                      variant="outline" 
+                      className="w-full rounded-xl" 
+                      onClick={() => handleTabChange("settings")}
+                    >
+                      <Settings size={16} className="mr-2" />
+                      Перейти в настройки
+                    </Button>
                   </CardContent>
                 </Card>
 
@@ -918,7 +1057,7 @@ export default function App() {
                   <CardDescription>Управление токенами API и финансовыми параметрами</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleSaveSettings} className="space-y-6">
+                  <form ref={settingsFormRef} onSubmit={handleSaveSettings} className="space-y-6" onChange={() => setHasUnsavedChanges(true)}>
                     <div className="space-y-4">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Токены API Wildberries</h3>
                       <div className="space-y-2">
@@ -944,7 +1083,17 @@ export default function App() {
                       </div>
                     </div>
 
-                    <Button type="submit" className="bg-[#7C3AED] hover:bg-[#6D28D9]">Сохранить настройки</Button>
+                    <div className="flex gap-3">
+                      <Button type="submit" className="bg-[#7C3AED] hover:bg-[#6D28D9]">
+                        <Save size={16} className="mr-2" />
+                        Сохранить настройки
+                      </Button>
+                      {hasUnsavedChanges && (
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 self-center">
+                          Есть несохранённые изменения
+                        </Badge>
+                      )}
+                    </div>
                   </form>
                 </CardContent>
               </Card>
@@ -952,6 +1101,31 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Toast провайдер */}
+      <Toaster position="top-right" richColors closeButton />
+
+      {/* Диалог подтверждения несохранённых изменений */}
+      <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Несохранённые изменения</DialogTitle>
+            <DialogDescription>
+              У вас есть несохранённые изменения в настройках. Что вы хотите сделать?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleDiscardChanges}>
+              <X size={16} className="mr-2" />
+              Не сохранять
+            </Button>
+            <Button className="bg-[#7C3AED] hover:bg-[#6D28D9]" onClick={handleSaveAndSwitch}>
+              <Save size={16} className="mr-2" />
+              Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -36,9 +36,8 @@
 - Если VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY не добавлены в Vercel Dashboard → авторизация падает молча.
 - Нужно: проверка при старте + понятное сообщение об ошибке.
 
-### TODO-003: Нет обработки ошибок при сохранении в Supabase
-- `handleSaveSettings` и `handleUpdateCogs` делают `await supabase.from(...).upsert(...)`, но не проверяют `error`.
-- Нужно: toast-уведомление при ошибке.
+### ~~TODO-003: Нет обработки ошибок при сохранении в Supabase~~ ✅ RESOLVED (Сессия 5)
+- `handleSaveSettings` и `handleUpdateCogs` теперь проверяют `error` от Supabase и показывают toast-уведомление.
 
 ---
 
