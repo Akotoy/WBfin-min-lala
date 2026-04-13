@@ -63,12 +63,14 @@ import { Auth } from "@/components/Auth";
 import { Session } from "@supabase/supabase-js";
 
 
+const DEFAULT_WB_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjYwMzAydjEiLCJ0eXAiOiJKV1QifQ.eyJhY2MiOjEsImVudCI6MSwiZXhwIjoxNzkwNzE2ODQzLCJpZCI6IjAxOWQ0MzMxLWZmMTItN2U2Yi1iNDNhLWNmMWFiYzViY2NmZiIsImlpZCI6MjY1MTMwMjAsIm9pZCI6MjUwMDIxNTcxLCJzIjoxMjMyNCwic2lkIjoiOGM2NjhmNzMtZTc0ZS00ZjJhLTk3N2QtMDk4ODg5MDY2MzA2IiwidCI6ZmFsc2UsInVpZCI6MjY1MTMwMjB9.JbVY1aKfpSgcJY6aA2l1RZRjCtw8wF3AOIL20_re7w47-Szc33KMnwqcebMIX9Ze97x5eqgQ85E8dCgFyQM4Zg";
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   const [settings, setSettings] = useState<WBSettings>({
-    tokens: { standard: "", statistics: "", ads: "" },
+    tokens: { standard: "", statistics: DEFAULT_WB_TOKEN, ads: "" },
     taxRate: 6
   });
   const [cogs, setCogs] = useState<Record<number, number>>({});
@@ -140,7 +142,11 @@ export default function App() {
         .single();
       
       if (settingsData && settingsData.settings) {
-        setSettings(settingsData.settings);
+        const loadedSettings = settingsData.settings;
+        if (!loadedSettings.tokens.statistics) {
+          loadedSettings.tokens.statistics = DEFAULT_WB_TOKEN;
+        }
+        setSettings(loadedSettings);
       }
 
       const { data: cogsData } = await supabase
