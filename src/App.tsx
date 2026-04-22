@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
+  Menu,
   LayoutDashboard, 
   Package, 
   TrendingUp, 
@@ -10,10 +11,18 @@ import {
   ShoppingCart,
   LogOut,
   Save,
+  Key,
   X,
   Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "./components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
@@ -26,7 +35,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { format, subDays, startOfWeek, endOfWeek, subWeeks } from "date-fns";
-import { buildProductsFromData, getSales, getOrders, getStocks, getReportDetailByPeriod } from "./services/wbService";
+import { buildProductsFromData, getSales, getOrders, getStocks, getReportDetailByPeriod, updatePrice } from "./services/wbService";
 import { WBProduct, WBSale, WBOrder, WBSettings, WBReportDetail } from "./types";
 import { calculateFinancialReport } from "./lib/financeEngine";
 import { supabase } from "@/lib/supabase";
@@ -335,12 +344,19 @@ export default function App() {
   }, [financeRows]);
 
   const handleUpdatePrice = async (nmId: number, newPrice: number) => {
+    const token = settings.tokens.standard || settings.tokens.statistics;
+    if (!token) {
+      toast.error("Необходим токен", { description: "Укажите стандартный токен в настройках" });
+      return;
+    }
     setLoading(true);
     try {
-      // In a real app, we'd call the service
-      // await updatePrice(token, nmId, newPrice);
-      setError("Функция обновления цен в разработке (требует специфических прав API)");
+      await updatePrice(token, nmId, newPrice);
+      toast.success("Цена обновлена", { description: `Новая цена для артикула: ${newPrice} ₽` });
+      // Reload products
+      fetchData();
     } catch (err: any) {
+      toast.error("Ошибка обновления цены", { description: err.message });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -418,6 +434,87 @@ export default function App() {
         </div>
       </aside>
 
+
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-[#E5E7EB] sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-[#7C3AED] rounded-lg flex items-center justify-center text-white shadow-md">
+            <TrendingUp size={18} />
+          </div>
+          <h1 className="text-lg font-bold tracking-tight">WB Finance</h1>
+        </div>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu size={24} />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-0">
+            <div className="flex flex-col h-full bg-[#F8F9FA]">
+              <SheetHeader className="p-6 text-left border-b border-[#E5E7EB] bg-white">
+                <SheetTitle className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-[#7C3AED] rounded-lg flex items-center justify-center text-white shadow-md">
+                    <TrendingUp size={18} />
+                  </div>
+                  WB Finance
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto p-4">
+                <nav className="space-y-2">
+                  <NavItem
+                    icon={<LayoutDashboard size={20} />}
+                    label="Дашборд"
+                    active={activeTab === "dashboard"}
+                    onClick={() => handleTabChange("dashboard")}
+                  />
+                  <NavItem
+                    icon={<Package size={20} />}
+                    label="Товары"
+                    active={activeTab === "products"}
+                    onClick={() => handleTabChange("products")}
+                  />
+                  <NavItem
+                    icon={<ShoppingCart size={20} />}
+                    label="Заказы"
+                    active={activeTab === "orders"}
+                    onClick={() => handleTabChange("orders")}
+                  />
+                  <NavItem
+                    icon={<Wallet size={20} />}
+                    label="Финансы"
+                    active={activeTab === "finance"}
+                    onClick={() => handleTabChange("finance")}
+                  />
+                  <NavItem
+                    icon={<Settings size={20} />}
+                    label="Настройки"
+                    active={activeTab === "settings"}
+                    onClick={() => handleTabChange("settings")}
+                  />
+                </nav>
+              </div>
+              <div className="p-4 bg-white border-t border-[#E5E7EB]">
+                <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 mb-2">
+                  <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-1">Статус API</p>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${settings.tokens.statistics ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-sm font-medium">{settings.tokens.statistics ? 'Подключено' : 'Ожидает токен'}</span>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full text-left justify-start text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
+                  onClick={() => supabase.auth.signOut()}
+                >
+                  <LogOut size={20} className="mr-3" />
+                  Выйти
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
       {/* Main Content */}
       <main className="md:ml-64 p-4 md:p-8">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -450,6 +547,28 @@ export default function App() {
 
         {/* Main Content Area */}
         <AnimatePresence mode="wait">
+          {!settings.tokens.statistics && activeTab !== "settings" ? (
+            <motion.div key="onboarding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                <div className="w-20 h-20 bg-purple-100 rounded-3xl flex items-center justify-center text-purple-600 mb-6 shadow-sm">
+                  <Key size={40} />
+                </div>
+                <h2 className="text-3xl font-bold mb-3">Подключите API Wildberries</h2>
+                <p className="text-muted-foreground mb-8 max-w-md text-lg">
+                  Для отображения дашборда и финансовой аналитики необходимо указать токен "Статистика".
+                </p>
+                <Button
+                  size="lg"
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] rounded-xl px-8"
+                  onClick={() => handleTabChange("settings")}
+                >
+                  <Settings size={20} className="mr-2" />
+                  Перейти в настройки
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <>
           {activeTab === "dashboard" && (
             <DashboardTab
               stats={stats}
@@ -491,6 +610,8 @@ export default function App() {
               setHasUnsavedChanges={setHasUnsavedChanges}
               handleSaveSettings={handleSaveSettings}
             />
+          )}
+          </>
           )}
         </AnimatePresence>
       </main>
