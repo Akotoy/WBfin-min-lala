@@ -445,7 +445,7 @@ export default function App() {
         </div>
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
+            <Button variant="ghost" size="icon" className="md:hidden" aria-label="Открыть меню">
               <Menu size={24} />
             </Button>
           </SheetTrigger>
@@ -648,6 +648,7 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
   return (
     <button 
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
       className={`
         w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all
         ${active 
