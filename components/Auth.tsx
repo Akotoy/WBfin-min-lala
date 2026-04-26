@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
   const [email, setEmail] = useState("");
