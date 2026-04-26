@@ -156,3 +156,12 @@ export interface FinancialStats {
   averageCheck: number;
   profit: number; // Estimated
 }
+
+export interface OperatingExpense {
+  id: string;
+  user_id: string;
+  date: string;
+  category: string;
+  amount: number;
+  description: string;
+}

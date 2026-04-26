@@ -36,13 +36,14 @@ import {
 } from "@/components/ui/dialog";
 import { format, subDays, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { buildProductsFromData, getSales, getOrders, getStocks, getReportDetailByPeriod, updatePrice } from "./services/wbService";
-import { WBProduct, WBSale, WBOrder, WBSettings, WBReportDetail } from "./types";
+import { WBProduct, WBSale, WBOrder, WBSettings, WBReportDetail, OperatingExpense } from "./types";
 import { calculateFinancialReport } from "./lib/financeEngine";
 import { supabase } from "@/lib/supabase";
 import { Auth } from "@/components/Auth";
 import { Session } from "@supabase/supabase-js";
 
-import { DashboardTab, ProductsTab, OrdersTab, FinanceTab, SettingsTab } from "./components/tabs";
+import { DashboardTab, ProductsTab, OrdersTab, FinanceTab, SettingsTab, ExpensesTab, PLTab } from "./components/tabs";
+import { PieChart, LineChart } from "lucide-react";
 
 const DEFAULT_WB_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjYwMzAydjEiLCJ0eXAiOiJKV1QifQ.eyJhY2MiOjEsImVudCI6MSwiZXhwIjoxNzkwNzE2ODQzLCJpZCI6IjAxOWQ0MzMxLWZmMTItN2U2Yi1iNDNhLWNmMWFiYzViY2NmZiIsImlpZCI6MjY1MTMwMjAsIm9pZCI6MjUwMDIxNTcxLCJzIjoxMjMyNCwic2lkIjoiOGM2NjhmNzMtZTc0ZS00ZjJhLTk3N2QtMDk4ODg5MDY2MzA2IiwidCI6ZmFsc2UsInVpZCI6MjY1MTMwMjB9.JbVY1aKfpSgcJY6aA2l1RZRjCtw8wF3AOIL20_re7w47-Szc33KMnwqcebMIX9Ze97x5eqgQ85E8dCgFyQM4Zg";
 
@@ -63,6 +64,7 @@ export default function App() {
   const [orders, setOrders] = useState<WBOrder[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
   const [reports, setReports] = useState<WBReportDetail[]>([]);
+  const [expenses, setExpenses] = useState<OperatingExpense[]>([]);
 
   // --- Состояние для диалога подтверждения несохранённых изменений ---
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -145,24 +147,86 @@ export default function App() {
         cogsData.forEach(row => cogsMap[row.nm_id] = row.cost);
         setCogs(cogsMap);
       }
+
+      // Load expenses (ignore errors if table not created yet)
+      const { data: expensesData, error: expError } = await supabase
+        .from('operating_expenses')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('date', { ascending: false });
+
+      if (expensesData) {
+        setExpenses(expensesData);
+      } else if (expError && expError.code === '42P01') {
+        // Relation does not exist - user needs to run SQL
+        console.warn('Operating expenses table not found. Please run update_supabase.sql');
+      }
+
     };
     
     loadUserData();
   }, [session]);
 
+  const handleAddExpense = async (expenseData: Omit<OperatingExpense, 'id' | 'user_id'>) => {
+    if (!session?.user) return;
+
+    const { data, error } = await supabase
+      .from('operating_expenses')
+      .insert([{ ...expenseData, user_id: session.user.id }])
+      .select()
+      .single();
+
+    if (error) {
+      toast.error("Ошибка сохранения", { description: error.message });
+      return;
+    }
+
+    if (data) {
+      setExpenses([data, ...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      toast.success("Расход добавлен");
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    const { error } = await supabase
+      .from('operating_expenses')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast.error("Ошибка удаления", { description: error.message });
+      return;
+    }
+
+    setExpenses(expenses.filter(e => e.id !== id));
+    toast.success("Расход удален");
+  };
+
   useEffect(() => {
     fetchData();
   }, [settings.tokens.statistics]);
 
+  const financeRows = useMemo(() => {
+    return calculateFinancialReport(reports, products, cogs, settings.taxRate);
+  }, [reports, products, cogs, settings.taxRate]);
+
   const stats = useMemo(() => {
     const revenue = sales.reduce((acc, s) => acc + s.finishedPrice, 0);
-    const profit = sales.reduce((acc, s) => acc + s.forPay, 0);
+
+    // Calculate accurate net profit for dashboard stats
+    // based on financeRows and expenses, not just unit economics from WB
+    const totalCogs = financeRows.reduce((sum, r) => sum + r.cogsTotal, 0);
+    const totalTax = financeRows.reduce((sum, r) => sum + r.taxRub, 0);
+    const totalOpEx = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const profit = financeRows.reduce((acc, r) => acc + r.forPay, 0) - totalCogs - totalTax - totalOpEx;
+
     const ordersCount = orders.length;
     const salesCount = sales.length;
     const avgCheck = salesCount > 0 ? Math.round(revenue / salesCount) : 0;
 
     return { revenue, profit, ordersCount, salesCount, avgCheck };
-  }, [sales, orders]);
+  }, [sales, orders, financeRows, expenses]);
 
   const chartData = useMemo(() => {
     const last7Days = Array.from({ length: 7 }).map((_, i) => {
@@ -178,10 +242,6 @@ export default function App() {
     });
     return last7Days;
   }, [sales, orders]);
-
-  const financeRows = useMemo(() => {
-    return calculateFinancialReport(reports, products, cogs, settings.taxRate);
-  }, [reports, products, cogs, settings.taxRate]);
 
   const handleSaveSettings = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -389,6 +449,24 @@ export default function App() {
             active={activeTab === "dashboard"} 
             onClick={() => handleTabChange("dashboard")}
           />
+          <NavItem
+            icon={<PieChart size={20} />}
+            label="Управленка (P&L)"
+            active={activeTab === "pl"}
+            onClick={() => handleTabChange("pl")}
+          />
+          <NavItem
+            icon={<Wallet size={20} />}
+            label="Юнит-экономика"
+            active={activeTab === "finance"}
+            onClick={() => handleTabChange("finance")}
+          />
+          <NavItem
+            icon={<LineChart size={20} />}
+            label="Расходы (ОРЕХ)"
+            active={activeTab === "expenses"}
+            onClick={() => handleTabChange("expenses")}
+          />
           <NavItem 
             icon={<Package size={20} />} 
             label="Товары" 
@@ -400,12 +478,6 @@ export default function App() {
             label="Заказы" 
             active={activeTab === "orders"} 
             onClick={() => handleTabChange("orders")}
-          />
-          <NavItem 
-            icon={<Wallet size={20} />} 
-            label="Финансы" 
-            active={activeTab === "finance"} 
-            onClick={() => handleTabChange("finance")}
           />
           <NavItem 
             icon={<Settings size={20} />} 
@@ -468,6 +540,24 @@ export default function App() {
                     onClick={() => handleTabChange("dashboard")}
                   />
                   <NavItem
+                    icon={<PieChart size={20} />}
+                    label="Управленка (P&L)"
+                    active={activeTab === "pl"}
+                    onClick={() => handleTabChange("pl")}
+                  />
+                  <NavItem
+                    icon={<Wallet size={20} />}
+                    label="Юнит-экономика"
+                    active={activeTab === "finance"}
+                    onClick={() => handleTabChange("finance")}
+                  />
+                  <NavItem
+                    icon={<LineChart size={20} />}
+                    label="Расходы (ОРЕХ)"
+                    active={activeTab === "expenses"}
+                    onClick={() => handleTabChange("expenses")}
+                  />
+                  <NavItem
                     icon={<Package size={20} />}
                     label="Товары"
                     active={activeTab === "products"}
@@ -478,12 +568,6 @@ export default function App() {
                     label="Заказы"
                     active={activeTab === "orders"}
                     onClick={() => handleTabChange("orders")}
-                  />
-                  <NavItem
-                    icon={<Wallet size={20} />}
-                    label="Финансы"
-                    active={activeTab === "finance"}
-                    onClick={() => handleTabChange("finance")}
                   />
                   <NavItem
                     icon={<Settings size={20} />}
@@ -593,12 +677,24 @@ export default function App() {
             <OrdersTab orders={orders} />
           )}
 
+          {activeTab === "pl" && (
+            <PLTab financeRows={financeRows} expenses={expenses} />
+          )}
+
           {activeTab === "finance" && (
             <FinanceTab
               financeSummary={financeSummary}
               profitChartData={profitChartData}
               financeRows={financeRows}
               taxRate={settings.taxRate}
+            />
+          )}
+
+          {activeTab === "expenses" && (
+            <ExpensesTab
+              expenses={expenses}
+              onAddExpense={handleAddExpense}
+              onDeleteExpense={handleDeleteExpense}
             />
           )}
 
