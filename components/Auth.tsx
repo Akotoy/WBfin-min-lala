@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
   const [email, setEmail] = useState("");
@@ -85,7 +85,9 @@ export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               )}
               
               <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium sr-only">Email</label>
                 <Input
+                  id="email"
                   type="email"
                   placeholder="name@example.com"
                   value={email}
@@ -95,7 +97,9 @@ export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 />
               </div>
               <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium sr-only">Пароль</label>
                 <Input
+                  id="password"
                   type="password"
                   placeholder="Пароль"
                   value={password}
