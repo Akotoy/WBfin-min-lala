@@ -1,0 +1,3 @@
+## 2024-05-17 - Form Accessibility Basics
+**Learning:** Adding proper form label associations (`htmlFor` on labels + `id` on inputs) and screen reader helper text associations (`aria-describedby` on inputs linking to text `id`s) drastically improves accessibility for screen readers and expands the clickable area of inputs.
+**Action:** Always verify that every input has an associated label, and every piece of helper text is programmatically linked to its input using `aria-describedby`.
