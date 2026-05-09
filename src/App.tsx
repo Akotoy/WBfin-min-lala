@@ -445,7 +445,7 @@ export default function App() {
         </div>
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
+            <Button variant="ghost" size="icon" className="md:hidden" aria-label="Открыть меню">
               <Menu size={24} />
             </Button>
           </SheetTrigger>
