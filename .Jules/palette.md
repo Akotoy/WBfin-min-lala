@@ -1,0 +1,3 @@
+## 2026-05-13 - Form Label Associations and Helper Text
+**Learning:** Proper form label association (`htmlFor` on `<label>` pointing to the `<input>` `id`) is essential for accessibility. Additionally, helper text below inputs must be programmatically associated with the input using `aria-describedby` so screen readers read the helper text when the input is focused.
+**Action:** When adding or reviewing forms, always check that labels have `htmlFor` and `id` bindings, and any instructional helper text uses `aria-describedby`.
