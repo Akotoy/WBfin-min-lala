@@ -1,0 +1,3 @@
+## 2024-05-24 - Form Accessibility and UX in Settings Tab
+**Learning:** In the SettingsTab form, inputs lacked programmatic association with their labels, reducing accessibility for screen reader users and preventing users from clicking labels to focus the inputs (a common, expected UX pattern). Additionally, helper text was not explicitly linked to the relevant input field.
+**Action:** Always ensure `htmlFor` and `id` attributes are explicitly paired for all `<label>` and `<Input>` components. For any helper text beneath an input, use `aria-describedby` on the input referencing the `id` of the helper text element to provide complete context for assistive technologies.
