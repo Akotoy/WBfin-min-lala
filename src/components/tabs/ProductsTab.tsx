@@ -29,7 +29,7 @@ export function ProductsTab({ products, cogs, handleUpdateCogs, handleUpdatePric
             <CardDescription>Управление ценами и мониторинг склада</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Input placeholder="Поиск по артикулу..." className="w-64" />
+            <Input aria-label="Поиск по артикулу" placeholder="Поиск по артикулу..." className="w-64" />
           </div>
         </CardHeader>
         <CardContent>
@@ -61,6 +61,7 @@ export function ProductsTab({ products, cogs, handleUpdateCogs, handleUpdatePric
                   </TableCell>
                   <TableCell>
                     <Input
+                      aria-label={`Себестоимость для ${product.title}`}
                       type="number"
                       className="w-24 h-8"
                       value={cogs[product.nmId] || ""}
@@ -69,7 +70,7 @@ export function ProductsTab({ products, cogs, handleUpdateCogs, handleUpdatePric
                     />
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleUpdatePrice(product.nmId, product.price + 100)}>
+                    <Button aria-label={`Увеличить цену на 100 рублей для ${product.title}`} variant="ghost" size="sm" onClick={() => handleUpdatePrice(product.nmId, product.price + 100)}>
                       +100 ₽
                     </Button>
                   </TableCell>
