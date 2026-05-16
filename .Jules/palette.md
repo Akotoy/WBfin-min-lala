@@ -1,0 +1,3 @@
+## 2026-05-16 - Form & Input Accessibility Enhancements
+**Learning:** Proper linkage between `<label>` and `<input>` elements using `htmlFor` and `id` respectively is essential for screen reader support and increases the clickable area for users. For inputs providing supplementary text, `aria-describedby` properly contextualizes the field. Inputs lacking visible text labels (like search bars or inline table editors) must have an `aria-label` to maintain an accessible interface. Furthermore, UI tools like shadcn/ui require explicit manual connection.
+**Action:** Always verify input/label relationships and standalone input ARIA compliance during frontend work, specifically in tables and forms using shadcn components.
