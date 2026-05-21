@@ -1,0 +1,3 @@
+## 2024-05-18 - Form Accessibility in shadcn/ui
+**Learning:** When using `shadcn/ui` custom components for forms (like `Input` and generic `label`), screen readers will not associate them automatically unless they are explicitly linked using `htmlFor` and `id` attributes. Additionally, helper text describing form fields must be explicitly linked using `aria-describedby` to be read by assistive technologies.
+**Action:** Always ensure that `htmlFor` on `<label>` matches the `id` on `<Input>`, and use `aria-describedby` pointing to the `id` of any helper `<p>` text when building or updating forms.
