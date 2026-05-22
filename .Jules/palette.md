@@ -1,0 +1,3 @@
+## 2025-05-22 - Explicit Form Label Association in shadcn/ui components
+**Learning:** When using shadcn/ui `Input` components along with standard HTML `<label>` elements outside of React Hook Form's `Form` component wrapper, implicit wrapping or missing `htmlFor` attributes break screen reader accessibility and prevent click-to-focus behavior. Helper texts also need explicit `aria-describedby` linkage.
+**Action:** Always explicitly use `htmlFor` on `<label>` elements matching the `id` of the shadcn `<Input>`. For helper text below inputs, use `aria-describedby` on the input pointing to the `id` of the text element.
