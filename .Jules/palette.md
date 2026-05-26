@@ -1,0 +1,3 @@
+## 2024-05-26 - Accessible form fields using shadcn/ui components
+**Learning:** When using shadcn/ui components (like `<Input>`) for forms, it is critical to explicitly link the `<label>` and the `<Input>` using `htmlFor` and `id` attributes respectively to ensure they are properly associated for screen readers. Furthermore, helper text should be linked to its corresponding input field using `aria-describedby` so the screen reader announces the instructions when the input is focused.
+**Action:** Always verify that every label has a matching `htmlFor` and `id` pair on its input. Always attach `aria-describedby` pointing to the `id` of any related helper text element.
