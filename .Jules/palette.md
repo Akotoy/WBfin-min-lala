@@ -1,0 +1,3 @@
+## 2024-05-18 - Adding Contextual Dynamic ARIA Labels in Data Tables
+**Learning:** When dealing with complex data tables that contain interactive elements repeatedly in rows (like cost inputs or identical "+X" buttons), basic `aria-labels` aren't sufficient. Screen readers read out the label independently of the surrounding table context, making multiple identical labels confusing and inaccessible. Dynamic `aria-labels` referencing unique row context (like `product.title` or ID) are critical for providing proper accessibility in repeating UI patterns.
+**Action:** Always use row-specific contextual data (like titles or IDs) when generating `aria-labels` for interactive elements repeated inside mapped data arrays or tables.
