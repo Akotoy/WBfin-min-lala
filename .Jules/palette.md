@@ -1,0 +1,3 @@
+## 2025-03-05 - shadcn/ui Form Component Accessibility
+**Learning:** When using shadcn/ui `Input` components outside of their `Form` context, they lack implicit accessible names if not wrapped properly.
+**Action:** Always link standalone `<label>` and `<Input>` components explicitly using `htmlFor` and `id` attributes. If an input has helper text, use `aria-describedby` to link the helper text's `id` to the input. For dynamic elements in tables or lists that lack a visible label, always provide a descriptive `aria-label` that includes the specific item's context (e.g., product title) to distinguish them for screen reader users.
