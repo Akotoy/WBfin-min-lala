@@ -1,0 +1,3 @@
+## 2026-05-29 - Form and Table Component Accessibility
+**Learning:** For complex repeating data tables (like `ProductsTab.tsx`), standard inputs and buttons lack context for screen reader users. Row-specific contextual `aria-label`s (e.g., using `product.title`) are necessary. Additionally, Shadcn/ui forms require explicit `htmlFor` and `id` attributes to correctly link `<label>` elements to `<Input>` fields, and `aria-describedby` should be used for associated helper text.
+**Action:** Always verify that repeating interactive elements in tables have unique, context-aware `aria-label`s, and ensure strict explicit linking between labels and inputs in forms.
