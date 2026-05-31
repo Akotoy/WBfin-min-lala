@@ -1,0 +1,3 @@
+## 2024-05-31 - Explicit Form Label and Helper Text Linking in shadcn/ui
+**Learning:** shadcn/ui components (like `Input`) do not automatically link to `<label>` elements unless explicitly associated via `htmlFor` on the label and `id` on the input. This can lead to screen reader unfriendliness. Additionally, helper text elements must be explicitly connected to their respective inputs using `aria-describedby` for proper screen reader context.
+**Action:** When implementing forms with separate label and input components, always ensure explicit `htmlFor` and `id` pairing, and link helper text with `aria-describedby`.
