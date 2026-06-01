@@ -33,25 +33,25 @@ export function SettingsTab({ settings, settingsFormRef, hasUnsavedChanges, setH
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Токены API Wildberries</h3>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Токен (Статистика) *</label>
-                <Input name="statisticsToken" type="password" defaultValue={settings.tokens.statistics} placeholder="Для получения отчетов и продаж" />
+                <label htmlFor="statisticsToken" className="text-sm font-medium">Токен (Статистика) *</label>
+                <Input id="statisticsToken" name="statisticsToken" type="password" defaultValue={settings.tokens.statistics} placeholder="Для получения отчетов и продаж" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Токен (Стандартный)</label>
-                <Input name="standardToken" type="password" defaultValue={settings.tokens.standard} placeholder="Для управления товарами и ценами" />
+                <label htmlFor="standardToken" className="text-sm font-medium">Токен (Стандартный)</label>
+                <Input id="standardToken" name="standardToken" type="password" defaultValue={settings.tokens.standard} placeholder="Для управления товарами и ценами" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Токен (Реклама)</label>
-                <Input name="adsToken" type="password" defaultValue={settings.tokens.ads} placeholder="Для получения затрат на продвижение" />
+                <label htmlFor="adsToken" className="text-sm font-medium">Токен (Реклама)</label>
+                <Input id="adsToken" name="adsToken" type="password" defaultValue={settings.tokens.ads} placeholder="Для получения затрат на продвижение" />
               </div>
             </div>
 
             <div className="space-y-4 pt-4 border-t">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Финансовые параметры</h3>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Налоговая ставка (%)</label>
-                <Input name="taxRate" type="number" step="0.1" defaultValue={settings.taxRate} />
-                <p className="text-xs text-muted-foreground">Пример: 6 для УСН 6%</p>
+                <label htmlFor="taxRate" className="text-sm font-medium">Налоговая ставка (%)</label>
+                <Input id="taxRate" name="taxRate" type="number" step="0.1" defaultValue={settings.taxRate} aria-describedby="taxRateHelp" />
+                <p id="taxRateHelp" className="text-xs text-muted-foreground">Пример: 6 для УСН 6%</p>
               </div>
             </div>
 
