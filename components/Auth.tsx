@@ -87,6 +87,7 @@ export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               <div className="space-y-2">
                 <Input
                   type="email"
+                  aria-label="Email адрес"
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -97,6 +98,7 @@ export function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
               <div className="space-y-2">
                 <Input
                   type="password"
+                  aria-label="Пароль"
                   placeholder="Пароль"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
