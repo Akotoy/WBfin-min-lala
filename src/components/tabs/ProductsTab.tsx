@@ -66,10 +66,11 @@ export function ProductsTab({ products, cogs, handleUpdateCogs, handleUpdatePric
                       value={cogs[product.nmId] || ""}
                       onChange={(e) => handleUpdateCogs(product.nmId, Number(e.target.value))}
                       placeholder="0"
+                      aria-label={`Себестоимость для ${product.title}`}
                     />
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleUpdatePrice(product.nmId, product.price + 100)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleUpdatePrice(product.nmId, product.price + 100)} aria-label={`Увеличить цену для ${product.title} на 100 рублей`}>
                       +100 ₽
                     </Button>
                   </TableCell>
