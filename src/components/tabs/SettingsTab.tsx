@@ -49,9 +49,9 @@ export function SettingsTab({ settings, settingsFormRef, hasUnsavedChanges, setH
             <div className="space-y-4 pt-4 border-t">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Финансовые параметры</h3>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Налоговая ставка (%)</label>
-                <Input name="taxRate" type="number" step="0.1" defaultValue={settings.taxRate} />
-                <p className="text-xs text-muted-foreground">Пример: 6 для УСН 6%</p>
+                <label htmlFor="taxRate" className="text-sm font-medium">Налоговая ставка (%)</label>
+                <Input id="taxRate" name="taxRate" type="number" step="0.1" defaultValue={settings.taxRate} aria-describedby="taxRate-helper" />
+                <p id="taxRate-helper" className="text-xs text-muted-foreground">Пример: 6 для УСН 6%</p>
               </div>
             </div>
 
