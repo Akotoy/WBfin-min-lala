@@ -1,0 +1,3 @@
+## 2024-06-10 - Dynamic ARIA labels in Data Tables
+**Learning:** When dealing with complex data tables that have repeating interactive elements (like inputs for COGS or buttons to update price per row), screen reader users lack context if these elements only have static labels. Without dynamic labels, an input might just announce "Input, 0" or a button "Button, +100 ₽", making it impossible to know which product row they belong to.
+**Action:** Always use dynamic `aria-label`s that reference the row's specific context (e.g., `aria-label={\`Себестоимость для ${product.title}\`}`) for inputs and action buttons inside data tables to ensure full screen reader accessibility.
