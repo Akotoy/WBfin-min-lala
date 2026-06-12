@@ -1,0 +1,3 @@
+## 2024-06-12 - Form and Table Accessibility Updates
+**Learning:** Proper association of `<label>` with `htmlFor` and `<Input>` with `id` is crucial for form accessibility. Helper text should be explicitly connected via `aria-describedby`. In complex data tables, repeating interactive elements must use dynamic `aria-label`s based on row context (e.g., product title) to prevent screen reader ambiguity. Icon-only buttons must always have explicit `aria-label`s.
+**Action:** Always check form structures for `htmlFor` and `id` linking. Apply dynamic `aria-label`s in table loops. Add `aria-label`s to all icon-only buttons.
