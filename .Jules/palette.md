@@ -1,0 +1,7 @@
+## 2024-05-24 - Accessibility Enhancements in Form and Table Components
+**Learning:** In applications utilizing `shadcn/ui` components for forms and tables, interactive elements lacking explicit semantic associations are invisible or poorly described by screen readers. Specifically:
+1.  `<label>` elements must explicitly link to their corresponding `<Input>` components using `htmlFor` and `id` attributes. Implicit wrapping or adjacent placement is insufficient for robust screen reader support.
+2.  Helper text beneath form inputs requires explicit association via `aria-describedby` on the `<Input>` element to ensure it is announced alongside the field's label.
+3.  Repeating interactive elements within complex data tables (e.g., search inputs, per-row text inputs for metrics like Cost of Goods Sold, and per-row action buttons) must utilize dynamic `aria-label` attributes. Incorporating the row's specific context (like `product.title` or `product.nmId`) prevents screen readers from presenting them as identical, ambiguous elements.
+
+**Action:** When working with forms, always assign a unique `id` to the `<Input>` and match it with the `htmlFor` attribute on the `<label>`. Ensure any contextual helper text is linked using `aria-describedby`. In data tables, proactively assign dynamic `aria-label` attributes to repetitive interactive elements (inputs, buttons) by referencing unique data points from the row context.
