@@ -1,0 +1,3 @@
+## 2024-11-20 - Ensure accessible form fields and dynamic ARIA labels
+**Learning:** For `shadcn/ui` components representing forms and repeating tables, explicitly link `<label>` and `<Input>` using `htmlFor` and `id` attributes. Additionally, for complex data tables with repeating interactive elements (e.g., inputs or buttons per row), always use dynamic `aria-label`s referencing the row's specific context (like `product.title`) to ensure screen reader accessibility. Also use `aria-describedby` for helper text.
+**Action:** When creating forms or repeating tabular data, ensure all inputs have associated labels (either via `id`/`htmlFor` or `aria-label` with dynamic context) and associate descriptions using `aria-describedby`.
