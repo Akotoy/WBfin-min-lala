@@ -1,0 +1,3 @@
+## 2024-06-19 - Screen Reader Accessibility for shadcn/ui Forms
+**Learning:** When using shadcn/ui custom `Input` components without an explicit structural form wrapping (like react-hook-form's Form/FormField), screen readers fail to associate labels and helper texts with the inputs. The visual proximity is not enough for accessibility.
+**Action:** Always explicitly link `<label>` tags to `<Input>` tags using matching `htmlFor` and `id` attributes. For supplementary helper text (like examples or format requirements), always use `aria-describedby` on the `<Input>` referencing the `id` of the helper text container (e.g. `<p>`).
