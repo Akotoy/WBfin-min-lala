@@ -1,0 +1,3 @@
+## 2024-05-24 - Dynamic ARIA labels in Data Tables
+**Learning:** When building complex data tables with repeating interactive elements (like inputs or action buttons in each row), static `aria-label`s or relying solely on column headers is insufficient for screen readers. Users lose context of which item they are editing if the input just says 'Cost' or 'Increase Price'.
+**Action:** Always use dynamic `aria-label`s that interpolate the row's specific context (e.g., `aria-label={\`Себестоимость для ${product.title}\`}`) to ensure screen reader users have explicit context for every interactive element within a table row.
