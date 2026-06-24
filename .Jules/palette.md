@@ -1,0 +1,3 @@
+## 2025-02-27 - [Form Input Accessibility]
+**Learning:** When using shadcn/ui components for forms, it's critical to explicitly link `<label>` and `<Input>` using `htmlFor` and `id` attributes respectively, and use `aria-describedby` for helper text to ensure screen reader accessibility.
+**Action:** Always ensure inputs have associated labels via `id` and `htmlFor`, and any helper text is linked using `aria-describedby` and an `id`.
