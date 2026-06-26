@@ -1,0 +1,3 @@
+## 2024-06-26 - Contextual ARIA labels in Data Tables
+**Learning:** When adding interactive elements like `<Input>` or `<Button>` to repeating rows in a data table (e.g., in `ProductsTab`), screen readers may fail to provide enough context if the elements lack visible labels or unique identifiers. A generic `aria-label` like "Себестоимость" is insufficient when repeated 50 times.
+**Action:** Always use dynamic `aria-label`s that reference the row's specific context (e.g., `aria-label={\`Себестоимость для \${product.title}\`}`) to ensure screen reader users understand exactly which item they are interacting with.
