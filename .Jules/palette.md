@@ -1,0 +1,3 @@
+## 2024-03-01 - Accessible Form Controls in shadcn/ui Settings
+**Learning:** When using shadcn/ui for configuration forms, simply placing an `<Input>` after a `<label>` is not enough for screen reader accessibility. The `<label>` must explicitly link to the input via `htmlFor` matching the input's `id`. For additional helper text (like tax rate examples), the input needs an `aria-describedby` attribute linking to the `id` of the description paragraph.
+**Action:** Always verify form inputs have linked labels and appropriate ARIA descriptions for helper text when modifying setting or data-entry components.
