@@ -1,0 +1,3 @@
+## 2024-06-28 - Explicit Label Associations and Helper Text
+**Learning:** When using shadcn/ui components for forms in this app, explicitly linking `<label>` and `<Input>` using `htmlFor` and `id` attributes respectively, and using `aria-describedby` for helper text, is critical to ensure screen reader accessibility. By default, nested inputs or implicitly linked inputs might not be parsed correctly by all assistive technologies.
+**Action:** Always use explicit `htmlFor` and `id` pairings for form controls. For any helper or explanatory text below an input, assign an `id` to the helper text and link it to the input via `aria-describedby`.
