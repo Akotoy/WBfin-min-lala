@@ -1,0 +1,3 @@
+## 2023-10-27 - Explicit label associations and aria-describedby for forms in shadcn/ui
+**Learning:** When creating forms with `shadcn/ui` components (like `<Input>`), the `<label>` and `<Input>` components don't automatically associate with each other for screen readers, unlike standard HTML nested labels. Similarly, helper text paragraphs are not inherently linked to their inputs.
+**Action:** Always explicitly link `<label>` elements to `<Input>` components using `htmlFor` and `id` attributes. Additionally, link any helper text to its corresponding input using the `aria-describedby` attribute on the input, referencing the `id` of the helper text paragraph.
