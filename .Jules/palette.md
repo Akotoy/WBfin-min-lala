@@ -1,0 +1,5 @@
+## 2024-07-06 - Form Accessibility with shadcn/ui
+
+**Learning:** When using `shadcn/ui` components for forms, it's crucial to explicitly link `<label>` and `<Input>` using `htmlFor` and `id` attributes respectively to ensure screen reader accessibility. Additionally, helper text should be linked to its corresponding input using `aria-describedby` and an `id`, and inputs without visible labels (like search bars or table cells) must have an explicit `aria-label`.
+
+**Action:** Always ensure standard HTML label accessibility patterns (`htmlFor` + `id`) are applied to `<label>` and form controls, even when using modern UI component libraries. Use `aria-describedby` for subtext/helper text. For inputs inside lists or tables, assign a dynamic `aria-label` utilizing row-specific context (e.g., `aria-label={\`Себестоимость для \${product.title}\`}`).
